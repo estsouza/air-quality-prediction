@@ -10,6 +10,13 @@ if (any(installed_packages == FALSE)) {
 # Packages loading
 invisible(lapply(packages, library, character.only = TRUE))
 
+## EPA Air Quality Dataset
+#    To register using the email address "myemail@example.com" create and request this link (Replace "myemail@example.com" in the example with your email address.):
+#    https://aqs.epa.gov/data/api/signup?email=myemail@example.com
+
+# get EPA credentials from config.R
+source("config.R")
+
 # Get list of available locations at OpenAQ
 
 base_url <- "https://api.openaq.org/v2/"
