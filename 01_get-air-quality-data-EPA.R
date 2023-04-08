@@ -17,43 +17,48 @@ invisible(lapply(packages, library, character.only = TRUE))
 # get EPA credentials from config.R
 source("config.R")
 
-# Get list of available locations at OpenAQ
+# EPA allow a maximum period of one year for the queries
+# Let's define a couple of functions to gather data for 5 cities with air pollution issues
+fetch_epa_data <- function(email, key, param, begin_date, end_date, state, county) {
+  # browser()
+  base_url <- "https://aqs.epa.gov/data/api/"
+  data_url <- paste0(base_url, "dailyData/byCounty")
+  # data_url <- paste0(base_url, "sampleData/byCounty")
 
-base_url <- "https://api.openaq.org/v2/"
-locations_url <- paste0(base_url, "locations")
-
-locations <- list(
-  santiago_chile = "-33.447487%2C-70.673676",
-  tokio_japan = "35.652832%2C139.839478",
-  berlin_germany = "13.404954%2C52.520008",
-  bangkok_thailand = "13.668217%2C100.614021",
-  newyork_unitedstates = "40.730610%2C-73.935242"
-)
-
-get_locations_per_coordinates <- function(coordinates) {
-  # Fetch the locations data
-  queryString <- list(
-    limit = "100",
-    page = "1",
-    offset = "0",
-    sort = "desc",
-    coordinates = coordinates,
-    radius = "10000",
-    order_by = "lastUpdated",
-    sensorType = "reference%20grade",
-    dumpRaw = "false"
+  query_params <- list(
+    email = email,
+    key = key,
+    param = param,
+    bdate = begin_date,
+    edate = end_date,
+    state = state,
+    county = county
   )
 
-  response <- VERB("GET", locations_url, query = queryString, content_type("application/octet-stream"), accept("application/json"))
+  response <- GET(data_url, query = query_params)
+  data <- content(response, "text", encoding = "UTF-8")
+  header <- fromJSON(data, flatten = TRUE)$Header
+  print(header)
+  df <- fromJSON(data, flatten = TRUE)$Data
 
-  locations_data <- content(response, "text")
-  locations_df <- fromJSON(locations_data, flatten = TRUE)$results
-  locations_df
+  return(df)
 }
 
-locations_df <- locations |> map(get_locations_per_coordinates)
 
-# Filter locations with long historical records (e.g., at least 2000 data points)
+param <- "88101" # PM2.5 (you can choose other parameters, see documentation)
+# param <- "42101" # Sulfur dioxide
+# param <- "42602" # Nitrogen dioxide
+begin_date <- "20200101"
+end_date <- "20201231"
+state <- "36" # New York (you can choose other states, see documentation)
+county <- "061" # New York (you can choose other counties, see documentation)
 
-### DISCONTINUED DUE TO SHORT AMOUNT OF DATA IN OPENAQ DATASET, DATING FROM SEPT 2022.
-### COULD CHECK AGAIN IN THE FUTURE.
+# state <- "06" # California
+# county <- "075" # San Francisco
+
+# Fetch the air quality data
+epa_data <- fetch_epa_data(email, api_key, param, begin_date, end_date, state, county)
+
+
+### DATA HAS A DELAY OF APROX 6 MONTHS FOR UPDATES IN THIS DATASET
+### PAUSING THE PROJECT
